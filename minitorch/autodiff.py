@@ -22,9 +22,10 @@ def central_difference(f: Any, *vals: Any, arg: int = 0, epsilon: float = 1e-6) 
     Returns:
         An approximation of $f'_i(x_0, \ldots, x_{n-1})$
     """
-    # TODO: Implement for Task 1.1.
-    raise NotImplementedError("Need to implement for Task 1.1")
-
+    my_vals = list(vals)
+    my_vals[arg] += epsilon 
+    delta = f(*my_vals) - f(*vals)
+    return delta / epsilon
 
 variable_count = 1
 
@@ -61,8 +62,21 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
     Returns:
         Non-constant Variables in topological order starting from the right.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError("Need to implement for Task 1.4")
+    Visited = [ ]
+    result = [ ]
+    def visit(n: Variable):
+        if n.is_constant(): # 常量不做处理
+            return
+        if n.unique_id in Visited: # 已经访问过了
+            return
+        if not n.is_leaf():
+            for input in n.history.inputs:
+                visit(input)
+        Visited.append(n.unique_id) # 该节点已经被访问
+        result.insert(0, n)
+        # result.append(n)
+    visit(variable)
+    return result
 
 
 def backpropagate(variable: Variable, deriv: Any) -> None:
@@ -76,9 +90,27 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
 
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError("Need to implement for Task 1.4")
 
+    result = topological_sort(variable) 
+    # 得到以Variable为最右节点的子节点拓扑图
+    node2deriv = {}
+    node2deriv[variable.unique_id] = deriv
+    for n in result:
+        if n.is_leaf():
+            continue
+        if n.unique_id in node2deriv.keys():
+            deriv = node2deriv[n.unique_id]
+        deriv_tmp = n.chain_rule(deriv)
+        for key, item in deriv_tmp: 
+            if key.is_leaf(): 
+                key.accumulate_derivative(item)
+                continue
+            if key.unique_id in node2deriv.keys():
+                # 根据 unique_id 判断是否已经计算得到部分梯度
+                # !不要使用Scallar in，因为重构了__eq__
+                node2deriv[key.unique_id] += item
+            else:
+                node2deriv[key.unique_id] = item
 
 @dataclass
 class Context:

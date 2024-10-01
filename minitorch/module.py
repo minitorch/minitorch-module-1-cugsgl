@@ -31,11 +31,23 @@ class Module:
 
     def train(self) -> None:
         "Set the mode of this module and all descendent modules to `train`."
-        raise NotImplementedError("Need to include this file from past assignment.")
+
+        def update(cur: "Module") -> None:
+            cur.training = True
+            for child in cur.__dict__["_modules"].values():
+                update(child)
+
+        update(self)
 
     def eval(self) -> None:
         "Set the mode of this module and all descendent modules to `eval`."
-        raise NotImplementedError("Need to include this file from past assignment.")
+
+        def update(cur: "Module") -> None:
+            cur.training = False
+            for child in cur.__dict__["_modules"].values():
+                update(child)
+
+        update(self)
 
     def named_parameters(self) -> Sequence[Tuple[str, Parameter]]:
         """
@@ -45,11 +57,35 @@ class Module:
         Returns:
             The name and `Parameter` of each ancestor parameter.
         """
-        raise NotImplementedError("Need to include this file from past assignment.")
+        res = {}
+
+        def helper(name: str, node: "Module") -> None:
+            prefix = name + "." if name else ""
+            for k, v in node._parameters.items():
+                res[prefix + k] = v
+            for ik, iv in node._modules.items():
+                helper(prefix + ik, iv)
+
+        helper("", self)
+        tuple_list = [(key, value) for key, value in res.items()]
+        return tuple_list
 
     def parameters(self) -> Sequence[Parameter]:
-        "Enumerate over all the parameters of this module and its descendents."
-        raise NotImplementedError("Need to include this file from past assignment.")
+        """
+        Enumerate over all the parameters of this module and its descendents.
+        Returns:
+            The name and `Parameter` of each ancestor parameter.
+        """
+        res = []
+
+        def helper(node: Module) -> None:
+            for k, v in node._parameters.items():
+                res.append(v)
+            for k1, v1 in node._modules.items():
+                helper(v1)
+
+        helper(self)
+        return res
 
     def add_parameter(self, k: str, v: Any) -> Parameter:
         """
@@ -115,9 +151,9 @@ class Module:
 
 class Parameter:
     """
-    A Parameter is a special container stored in a `Module`.
+    A Parameter is a special container stored in a :class:`Module`.
 
-    It is designed to hold a `Variable`, but we allow it to hold
+    It is designed to hold a :class:`Variable`, but we allow it to hold
     any value for testing.
     """
 
