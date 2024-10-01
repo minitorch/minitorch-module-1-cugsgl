@@ -145,17 +145,19 @@ class Sigmoid(ScalarFunction):
 
     @staticmethod
     def backward(ctx: Context, d_output: float) -> float:
-        return central_difference(operators.sigmoid, ctx.saved_tensors) * d_output
+        return operators.sigmoid(ctx.saved_tensors[0]) * (1-operators.sigmoid(ctx.saved_tensors[0])) * d_output
+        # return central_difference(operators.sigmoid, ctx.saved_tensors) * d_output
 
 class ReLU(ScalarFunction):
     "ReLU function"
 
     @staticmethod
     def forward(ctx: Context, a: float) -> float:
+        ctx.save_for_backward(a)
         return operators.relu(a)
     @staticmethod
     def backward(ctx: Context, d_output: float) -> float:
-        return operators.relu_back() * d_output
+        return operators.relu_back(ctx.saved_tensors[0], d_output) 
 
 class Exp(ScalarFunction):
     "Exp function"
@@ -166,7 +168,7 @@ class Exp(ScalarFunction):
         return operators.exp(a)
     @staticmethod
     def backward(ctx: Context, d_output: float) -> float:
-        return central_difference(operators.exp, ctx.saved_tensors) * d_output
+        return central_difference(operators.exp, ctx.saved_tensors[0]) * d_output
 
 class LT(ScalarFunction):
     "Less-than function $f(x) =$ 1.0 if x is less than y else 0.0"
